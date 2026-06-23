@@ -17,18 +17,23 @@ export function registerSddLoop(pi: ExtensionAPI): void {
       }
 
       const commands = pi.getCommands();
-      const speckitPresent = commands.some(
-        (c) => c.name === "speckit.specify" || c.name === "speckit.implement",
-      );
-      if (!speckitPresent) {
+      const commandNames = new Set(commands.map((c) => c.name));
+      const REQUIRED = [
+        "speckit.specify",
+        "speckit.plan",
+        "speckit.tasks",
+        "speckit.implement",
+      ] as const;
+      const missing = REQUIRED.filter((name) => !commandNames.has(name));
+      if (missing.length > 0) {
         ctx.ui.notify(
-          "Spec Kit slash commands (/speckit.*) not detected. " +
-            "Install github/spec-kit for your coding agent before running /sdd-loop.",
+          "Spec Kit commands not detected: " + missing.join(", ") + ".",
           "warning",
         );
         const proceed = await ctx.ui.confirm(
           "Continue anyway?",
-          "The Spec Kit phases may not expand/run as user messages.",
+          "Without all /speckit.* phases the loop may skip steps " +
+            "(the missing commands are sent as literal text and ignored).",
         );
         if (!proceed) return;
       }
@@ -39,10 +44,12 @@ export function registerSddLoop(pi: ExtensionAPI): void {
         return;
       }
 
+      const availableCommands = pi.getCommands().map((c) => c.name);
+
       if (mode === "single") {
-        await runSingle(pi, ctx);
+        await runSingle(pi, ctx, availableCommands);
       } else {
-        await runMulti(ctx);
+        await runMulti(ctx, availableCommands);
       }
     },
   });

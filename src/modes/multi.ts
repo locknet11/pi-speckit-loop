@@ -14,7 +14,10 @@ export { DEFAULT_TEMPLATE, scaffoldProjectSpec };
 
 const PROJECT_SPEC = "PROJECT_SPEC.md";
 
-export async function runMulti(ctx: ExtensionCommandContext): Promise<void> {
+export async function runMulti(
+  ctx: ExtensionCommandContext,
+  availableCommands?: string[],
+): Promise<void> {
   const path = join(ctx.cwd, PROJECT_SPEC);
   const text = await readIfExists(path);
   if (text === undefined) {
@@ -43,7 +46,7 @@ export async function runMulti(ctx: ExtensionCommandContext): Promise<void> {
     "info",
   );
 
-  await runFeatureChain(ctx, path, features, 0);
+  await runFeatureChain(ctx, path, features, 0, availableCommands);
 }
 
 /**
@@ -64,6 +67,7 @@ async function runFeatureChain(
   path: string,
   features: Feature[],
   startIndex: number,
+  availableCommands?: string[],
 ): Promise<void> {
   let i = startIndex;
   while (i < features.length && features[i]!.status === "COMPLETED") i++;
@@ -85,15 +89,15 @@ async function runFeatureChain(
       withSession: async (repl) => {
         const runner = runnerFromRepl(repl);
         const label = feature.name || `feature #${i}`;
-        repl.ui.notify(`SDD: ${label} — specify → plan → tasks → implement`, "info");
-        await runPipeline(runner, {
-          prd: feature.prd,
-          technicalView: feature.technicalView,
-        });
+        await runPipeline(
+          runner,
+          { prd: feature.prd, technicalView: feature.technicalView },
+          { availableCommands },
+        );
         await setStatusByIndex(path, i, "COMPLETED");
         feature.status = "COMPLETED";
         // Thread the current replacement ctx forward to the next feature.
-        await runFeatureChain(repl, path, features, i + 1);
+        await runFeatureChain(repl, path, features, i + 1, availableCommands);
       },
     });
   } catch (err) {

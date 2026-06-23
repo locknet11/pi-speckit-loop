@@ -6,6 +6,7 @@ import { runPipeline } from "../phases.js";
 export async function runSingle(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
+  availableCommands?: string[],
 ): Promise<void> {
   const prd = await askMultiline(
     ctx,
@@ -35,9 +36,10 @@ export async function runSingle(
 
   const runner = runnerFromCommand(pi, ctx);
   ctx.ui.notify("Starting single-feature SDD...", "info");
+  const commands = availableCommands ?? pi.getCommands().map((c) => c.name);
 
   try {
-    await runPipeline(runner, { prd, technicalView });
+    await runPipeline(runner, { prd, technicalView }, { availableCommands: commands });
     ctx.ui.notify("Single-feature SDD complete.", "info");
   } catch (err) {
     ctx.ui.notify(`SDD failed: ${(err as Error).message}`, "error");
