@@ -91,7 +91,7 @@ async function runFeatureChain(
         const label = feature.name || `feature #${i}`;
         await runPipeline(
           runner,
-          { prd: feature.prd, technicalView: feature.technicalView },
+          { prd: feature.prd, technicalView: feature.technicalView, label },
           { availableCommands },
         );
         await setStatusByIndex(path, i, "COMPLETED");

@@ -1,5 +1,11 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
+/**
+ * Footer status key used by the SDD loop to show the currently-running phase.
+ * Cleared (set to `undefined`) when the pipeline finishes.
+ */
+export const SDD_STATUS_KEY = "sdd-loop";
+
 export interface SessionRunner {
   /**
    * Send a user message (e.g. a slash command + args) to the agent. Resolves on
@@ -9,6 +15,8 @@ export interface SessionRunner {
   /** Wait until the agent stops streaming. */
   waitForIdle(): Promise<void>;
   notify(text: string, level: "info" | "warning" | "error"): void;
+  /** Set a persistent footer status line (undefined clears it). */
+  setStatus(text: string | undefined): void;
   cwd: string;
 }
 
@@ -24,7 +32,10 @@ export interface ReplacementContext {
     options?: { deliverAs?: "steer" | "followUp" },
   ): Promise<unknown>;
   waitForIdle(): Promise<unknown>;
-  ui: { notify(text: string, level: "info" | "warning" | "error"): void };
+  ui: {
+    notify(text: string, level: "info" | "warning" | "error"): void;
+    setStatus?(key: string, text?: string): void;
+  };
   cwd: string;
 }
 
@@ -42,6 +53,9 @@ export function runnerFromCommand(
     },
     notify(text, level) {
       ctx.ui.notify(text, level);
+    },
+    setStatus(text) {
+      ctx.ui.setStatus(SDD_STATUS_KEY, text);
     },
     cwd: ctx.cwd,
   };
@@ -64,6 +78,11 @@ export function runnerFromRepl(repl: ReplacementContext): SessionRunner {
     },
     notify(text, level) {
       repl.ui.notify(text, level);
+    },
+    setStatus(text) {
+      // setStatus is available on ExtensionCommandContext, which ReplacedSessionContext
+      // extends. Guard in case an RPC/print context omits it.
+      repl.ui.setStatus?.(SDD_STATUS_KEY, text);
     },
     cwd: repl.cwd,
   };

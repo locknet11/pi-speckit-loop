@@ -39,7 +39,7 @@ export async function runSingle(
   const commands = availableCommands ?? pi.getCommands().map((c) => c.name);
 
   try {
-    await runPipeline(runner, { prd, technicalView }, { availableCommands: commands });
+    await runPipeline(runner, { prd, technicalView, label: "single-feature" }, { availableCommands: commands });
     ctx.ui.notify("Single-feature SDD complete.", "info");
   } catch (err) {
     ctx.ui.notify(`SDD failed: ${(err as Error).message}`, "error");
